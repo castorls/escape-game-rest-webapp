@@ -14,6 +14,9 @@ public class Config {
   @JsonProperty
   public Type type;
 
+  @JsonProperty
+  public String[] targets;
+
   public String getKey() {
     return key;
   }
@@ -30,4 +33,11 @@ public class Config {
     this.type = type;
   }
 
+  public String[] getTargets() {
+    return targets;
+  }
+
+  public void setTargets(String[] targets) {
+    this.targets = targets;
+  }
 }

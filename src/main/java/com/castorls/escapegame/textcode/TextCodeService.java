@@ -17,20 +17,7 @@ import com.castorls.escapegame.Util;
 import com.castorls.escapegame.textcode.Config.Type;
 
 @Path("/textcode")
-public class TextCodeService extends AbstractService {
-
-  private String[] targets = new String[] {
-      "Là ou la Drouette se jette dans l’étang d’or, sous le pont se cache dans le décor"
-  };
-
-  private String[] test = new String[] {
-      "a contre courant",
-      "1 2 3 nous irons au bois",
-      "toujours pret",
-      "eclaireuses eclaireurs",
-      "sir baden powell",
-      "etes vous sur ?"
-  };
+public class TextCodeService extends AbstractService{
 
   private String challenge = null;
   private String solution = null;
@@ -45,6 +32,7 @@ public class TextCodeService extends AbstractService {
   public String getSseEventName() {
     return "texteCodeEvent";
   }
+
 
   @GET
   @Path("/getState")
@@ -120,6 +108,7 @@ public class TextCodeService extends AbstractService {
 
   private void buildChallenge() {
     Config config = (Config) application.getProperties().get(this.getClass().getName());
+    String[] targets = config.getTargets();
     Type type = config.getType();
     if (Type.LETTRE.equals(type)) {
       int[] key = new int[1];
@@ -127,16 +116,18 @@ public class TextCodeService extends AbstractService {
       key[0] = keyStr.charAt(0) - startChar;
       solution = targets[(int) Math.round(targets.length * Math.random())];
       challenge = convertStringToTextCode(solution, key, false);
-    } else if (Type.MOT.equals(type)) {
+    }
+    else if (Type.MOT.equals(type)) {
       String keyStr = config.getKey().trim();
       int[] key = new int[keyStr.length()];
-      for (int i = 0; i < keyStr.length(); i++) {
+      for(int i =0; i< keyStr.length(); i++) {
         key[i] = (int) keyStr.charAt(i) - startChar;
       }
       int index = (int) Math.floor(targets.length * Math.random());
       solution = targets[index];
       challenge = convertStringToTextCode(solution, key, false);
-    } else if (Type.CHIFFRE.equals(type)) {
+    }
+    else if (Type.CHIFFRE.equals(type)) {
       int[] key = new int[1];
       String keyStr = config.getKey().trim();
       key[0] = (char) Integer.parseInt(keyStr);
@@ -159,14 +150,17 @@ public class TextCodeService extends AbstractService {
       String carS = String.valueOf(car);
       if (carS.equals(" ")) {
         builder.append(toNumber ? "0 " : " ");
-      } else if (car < startChar || car > endChar) {
+      }
+      else if( car < startChar || car > endChar) {
         builder.append(car).append(" ");
-      } else {
+      }
+      else {
         int carInt = (car - startChar + key[i % (key.length)]);
         int convertedCarInt = (carInt % (endChar - startChar));
-        if (toNumber) {
+        if(toNumber) {
           builder.append(Integer.toString(convertedCarInt)).append(" ");
-        } else {
+        }
+        else {
           builder.append((char) convertedCarInt);
         }
         i++;

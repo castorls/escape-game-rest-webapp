@@ -18,14 +18,6 @@ import com.castorls.escapegame.textcode.Config;
 
 @Path("/morse")
 public class MorseService extends AbstractService {
-  private String[] targets = new String[] {
-      "a contre courant",
-      "1 2 3 nous irons au bois",
-      "toujours pret",
-      "eclaireuses eclaireurs",
-      "sir baden powell",
-      "etes vous sur ?"
-  };
 
   private String challenge = null;
   private String solution = null;
@@ -113,6 +105,8 @@ public class MorseService extends AbstractService {
   }
 
   private void buildChallenge() {
+    Config config = (Config) application.getProperties().get(this.getClass().getName());
+    String[] targets = config.getTargets();
     solution = targets[(int) Math.round(targets.length * Math.random())];
     challenge = convertStringToMorse(solution);
     this.token = null;
