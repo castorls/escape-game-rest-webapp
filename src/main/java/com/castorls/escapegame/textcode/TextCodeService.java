@@ -3,30 +3,21 @@ package com.castorls.escapegame.textcode;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.core.Application;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import com.castorls.escapegame.SSeService;
+import com.castorls.escapegame.AbstractService;
 import com.castorls.escapegame.Util;
 import com.castorls.escapegame.textcode.Config.Type;
 
 @Path("/textcode")
-public class TextCodeService {
-
-  @Inject
-  private SSeService sseService;
-
-  @Context
-  private Application application;
+public class TextCodeService extends AbstractService {
 
   private String[] targets = new String[] {
       "Là ou la Drouette se jette dans l’étang d’or, sous le pont se cache dans le décor"
@@ -50,24 +41,26 @@ public class TextCodeService {
   public TextCodeService() {
   }
 
+  @Override
+  public String getSseEventName() {
+    return "texteCodeEvent";
+  }
+
   @GET
   @Path("/getState")
   @Produces(MediaType.APPLICATION_JSON)
   public Response getState() {
-    Map<String, Object> responseMap = new HashMap<>();
-    Status status = Status.OK;
     try {
+      Map<String, Object> responseMap = new HashMap<>();
       responseMap.put("token", token);
       if (token != null && !"".equals(token.trim())) {
-        this.sseService.sendMessage("event", "texteCodeEvent", "solved", null);
+        sendSseSolvedEvent();
         responseMap.put("solution", solution);
       }
+      return Response.status(Status.OK).entity(responseMap).build();
     } catch (Exception e) {
-      responseMap.put("errorClass", e.getClass().getName());
-      responseMap.put("errorMessage", e.getMessage());
-      status = Response.Status.INTERNAL_SERVER_ERROR;
+      return generateErrorResponse(e);
     }
-    return Response.status(status).entity(responseMap).build();
   }
 
   @GET
@@ -87,15 +80,12 @@ public class TextCodeService {
   @Consumes("application/json")
   @Produces("application/json")
   public Response consumeReset() {
-    Map<String, Object> responseMap = new HashMap<>();
     try {
       this.challenge = null;
       this.solution = null;
       return Response.status(200).build();
     } catch (Exception e) {
-      responseMap.put("errorClass", e.getClass().getName());
-      responseMap.put("errorMessage", e.getMessage());
-      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(responseMap).build();
+      return generateErrorResponse(e);
     }
   }
 
@@ -104,29 +94,27 @@ public class TextCodeService {
   @Consumes("application/json")
   @Produces("application/json")
   public Response consumeProposition(Proposition proposition) {
-    Map<String, Object> responseMap = new HashMap<>();
     try {
       if (proposition == null) {
-        return null;
+        return generateErrorResponse("InvalidProposition", "Invalid null proposition", Response.Status.BAD_REQUEST);
       }
       String value = proposition.getValue();
       if (value == null) {
-        return null;
+        return generateErrorResponse("InvalidProposition", "Invalid null value in proposition", Response.Status.BAD_REQUEST);
       }
       value = Util.protectString(value);
+      Map<String, Object> responseMap = new HashMap<>();
       if (solution != null && value.equals(Util.protectString(solution))) {
         token = "solvedToken";
         responseMap.put("token", token);
         responseMap.put("solution", solution);
-        this.sseService.sendMessage("event", "morseEvent", "solved", null);
+        sendSseSolvedEvent();
       } else {
         responseMap.put("errorMessage", "La chaine proposée n'est pas correcte");
       }
       return Response.status(200).entity(responseMap).build();
     } catch (Exception e) {
-      responseMap.put("errorClass", e.getClass().getName());
-      responseMap.put("errorMessage", e.getMessage());
-      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(responseMap).build();
+      return generateErrorResponse(e);
     }
   }
 
@@ -139,18 +127,16 @@ public class TextCodeService {
       key[0] = keyStr.charAt(0) - startChar;
       solution = targets[(int) Math.round(targets.length * Math.random())];
       challenge = convertStringToTextCode(solution, key, false);
-    }
-    else if (Type.MOT.equals(type)) {
+    } else if (Type.MOT.equals(type)) {
       String keyStr = config.getKey().trim();
       int[] key = new int[keyStr.length()];
-      for(int i =0; i< keyStr.length(); i++) {
+      for (int i = 0; i < keyStr.length(); i++) {
         key[i] = (int) keyStr.charAt(i) - startChar;
       }
       int index = (int) Math.floor(targets.length * Math.random());
       solution = targets[index];
       challenge = convertStringToTextCode(solution, key, false);
-    }
-    else if (Type.CHIFFRE.equals(type)) {
+    } else if (Type.CHIFFRE.equals(type)) {
       int[] key = new int[1];
       String keyStr = config.getKey().trim();
       key[0] = (char) Integer.parseInt(keyStr);
@@ -172,18 +158,15 @@ public class TextCodeService {
     for (char car : chars) {
       String carS = String.valueOf(car);
       if (carS.equals(" ")) {
-        builder.append("0 ");
-      }
-      else if( car < startChar || car > endChar) {
+        builder.append(toNumber ? "0 " : " ");
+      } else if (car < startChar || car > endChar) {
         builder.append(car).append(" ");
-      }
-      else {
+      } else {
         int carInt = (car - startChar + key[i % (key.length)]);
         int convertedCarInt = (carInt % (endChar - startChar));
-        if(toNumber) {
+        if (toNumber) {
           builder.append(Integer.toString(convertedCarInt)).append(" ");
-        }
-        else {
+        } else {
           builder.append((char) convertedCarInt);
         }
         i++;

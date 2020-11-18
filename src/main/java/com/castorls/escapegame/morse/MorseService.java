@@ -3,7 +3,6 @@ package com.castorls.escapegame.morse;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -13,15 +12,12 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import com.castorls.escapegame.SSeService;
+import com.castorls.escapegame.AbstractService;
 import com.castorls.escapegame.Util;
+import com.castorls.escapegame.textcode.Config;
 
 @Path("/morse")
-public class MorseService {
-
-  @Inject
-  private SSeService sseService;
-
+public class MorseService extends AbstractService {
   private String[] targets = new String[] {
       "a contre courant",
       "1 2 3 nous irons au bois",
@@ -38,6 +34,11 @@ public class MorseService {
   public MorseService() {
   }
 
+  @Override
+  public String getSseEventName() {
+    return "morseEvent";
+  }
+
   @GET
   @Path("/getState")
   @Produces(MediaType.APPLICATION_JSON)
@@ -47,13 +48,11 @@ public class MorseService {
     try {
       responseMap.put("token", token);
       if (token != null && !"".equals(token.trim())) {
-        this.sseService.sendMessage("event", "morseEvent", "solved", null);
+        sendSseSolvedEvent();
         responseMap.put("solution", solution);
       }
     } catch (Exception e) {
-      responseMap.put("errorClass", e.getClass().getName());
-      responseMap.put("errorMessage", e.getMessage());
-      status = Response.Status.INTERNAL_SERVER_ERROR;
+      return generateErrorResponse(e);
     }
     return Response.status(status).entity(responseMap).build();
   }
@@ -75,15 +74,12 @@ public class MorseService {
   @Consumes("application/json")
   @Produces("application/json")
   public Response consumeReset() {
-    Map<String, Object> responseMap = new HashMap<>();
     try {
       this.challenge = null;
       this.solution = null;
       return Response.status(200).build();
     } catch (Exception e) {
-      responseMap.put("errorClass", e.getClass().getName());
-      responseMap.put("errorMessage", e.getMessage());
-      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(responseMap).build();
+      return generateErrorResponse(e);
     }
   }
 
@@ -92,32 +88,29 @@ public class MorseService {
   @Consumes("application/json")
   @Produces("application/json")
   public Response consumeChoice(Proposition proposition) {
-    Map<String, Object> responseMap = new HashMap<>();
     try {
       if (proposition == null) {
-        return null;
+        return generateErrorResponse("InvalidProposition", "Invalid null proposition", Response.Status.BAD_REQUEST);
       }
       String value = proposition.getValue();
       if (value == null) {
-        return null;
+        return generateErrorResponse("InvalidProposition", "Invalid null value in proposition", Response.Status.BAD_REQUEST);
       }
       value = Util.protectString(value);
+      Map<String, Object> responseMap = new HashMap<>();
       if (solution != null && value.equals(Util.protectString(solution))) {
         token = "solvedToken";
         responseMap.put("token", token);
-        responseMap.put("solution",solution);
-        this.sseService.sendMessage("event", "morseEvent", "solved", null);
+        responseMap.put("solution", solution);
+        sendSseSolvedEvent();
       } else {
         responseMap.put("errorMessage", "La chaine proposée n'est pas correcte");
       }
       return Response.status(200).entity(responseMap).build();
     } catch (Exception e) {
-      responseMap.put("errorClass", e.getClass().getName());
-      responseMap.put("errorMessage", e.getMessage());
-      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(responseMap).build();
+      return generateErrorResponse(e);
     }
   }
-
 
   private void buildChallenge() {
     solution = targets[(int) Math.round(targets.length * Math.random())];
