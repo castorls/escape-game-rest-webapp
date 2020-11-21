@@ -1,13 +1,13 @@
 package com.castorls.escapegame.simpletext;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -20,11 +20,13 @@ import com.castorls.escapegame.simpletext.Config.Type;
 @Path("/simpletext")
 public class SimpleTextService extends AbstractService {
 
-  private List<String> challengeList = null;
-  private List<String> solutionList = null;
-  private List<String> tokenList = null;
+  private String[] challenges = null;
+  private String[] solutions = null;
+  private String[] tokens = null;
   private char startChar = 0x41; // A
   private char endChar = 0x5A; // Z
+  private char startNumberChar = 0x30; // 0
+  private char endNumberChar = 0x39; // 9
 
   public SimpleTextService() {
   }
@@ -35,19 +37,19 @@ public class SimpleTextService extends AbstractService {
   }
 
   @GET
-  @Path("/getState")
+  @Path("/getState/{index}")
   @Produces(MediaType.APPLICATION_JSON)
-  public Response getState(int challengeIndex) {
+  public Response getState(@PathParam("index") int challengeIndex) {
     try {
       if (challengeIndex < 0 || challengeIndex >= getNbChallenge()) {
         return generateErrorResponse("InvalidChallengeIndex", "Invalid challenge index " + challengeIndex, Response.Status.BAD_REQUEST);
       } else {
         Map<String, Object> responseMap = new HashMap<>();
-        String token = tokenList.get(challengeIndex);
+        String token = tokens[challengeIndex];
         responseMap.put("token", token);
         if (token != null && !"".equals(token.trim())) {
           this.sseService.sendMessage("event", getSseEventName(), challengeIndex + " solved", null);
-          responseMap.put("solution", solutionList.get(challengeIndex));
+          responseMap.put("solution", solutions[challengeIndex]);
         }
         return Response.status(Status.OK).entity(responseMap).build();
       }
@@ -57,26 +59,25 @@ public class SimpleTextService extends AbstractService {
   }
 
   @GET
-  @Path("/getChallenge")
+  @Path("/getChallenge/{index}")
   @Produces("application/json")
-  public Response getChallenge(int challengeIndex) {
+  public Response getChallenge(@PathParam("index") int challengeIndex) {
     if (challengeIndex < 0 || challengeIndex >= getNbChallenge()) {
       return generateErrorResponse("InvalidChallengeIndex", "Invalid challenge index " + challengeIndex, Response.Status.BAD_REQUEST);
     } else {
       Map<String, Object> map = new HashMap<>();
-      if (challengeList == null) {
+      if (challenges == null) {
         buildChallenges();
       }
-      map.put("challenge", challengeList.get(challengeIndex));
+      map.put("challenge", challenges[challengeIndex]);
       return Response.status(200).entity(map).build();
     }
   }
 
   @POST
-  @Path("/reset")
-  @Consumes("application/json")
+  @Path("/reset/{index}")
   @Produces("application/json")
-  public Response consumeReset(int challengeIndex) {
+  public Response consumeReset(@PathParam("index") int challengeIndex) {
     try {
       if (challengeIndex < 0 || challengeIndex >= getNbChallenge()) {
         return generateErrorResponse("InvalidChallengeIndex", "Invalid challenge index " + challengeIndex, Response.Status.BAD_REQUEST);
@@ -93,7 +94,7 @@ public class SimpleTextService extends AbstractService {
   @Path("/checkProposition")
   @Consumes("application/json")
   @Produces("application/json")
-  public Response consumeProposition(Proposition proposition) {
+  public Response consumeProposition(com.castorls.escapegame.simpletext.Proposition proposition) {
     Map<String, Object> responseMap = new HashMap<>();
     try {
       if (proposition == null) {
@@ -108,10 +109,10 @@ public class SimpleTextService extends AbstractService {
       if (challengeIndex < 0 || challengeIndex >= getNbChallenge()) {
         return generateErrorResponse("InvalidChallengeIndex", "Invalid challenge index " + challengeIndex, Response.Status.BAD_REQUEST);
       } else {
-        String solution = solutionList.get(challengeIndex);
+        String solution = solutions[challengeIndex];
         if (solution != null && value.equals(Util.protectString(solution))) {
           String token = "solvedToken";
-          tokenList.set(challengeIndex, token);
+          tokens[challengeIndex] = token;
           responseMap.put("token", token);
           responseMap.put("solution", solution);
           responseMap.put("challengeIndex", challengeIndex);
@@ -127,9 +128,13 @@ public class SimpleTextService extends AbstractService {
   }
 
   private void buildChallenges() {
-    Config config = (Config) application.getProperties().get(this.getClass().getName());
+    com.castorls.escapegame.simpletext.Config config = (com.castorls.escapegame.simpletext.Config) application.getProperties().get(this.getClass().getName());
     Challenge[] challenges = config.getChallenges();
-    for (int i = 0; i < challenges.length; i++) {
+    int nbChallenges = challenges.length;
+    this.solutions = new String[nbChallenges];
+    this.challenges = new String[nbChallenges];
+    this.tokens = new String[nbChallenges];
+    for (int i = 0; i < nbChallenges; i++) {
       Challenge challenge = challenges[i];
       buildChallenge(challenge, i);
     }
@@ -140,7 +145,7 @@ public class SimpleTextService extends AbstractService {
       // nothing to do
       return;
     }
-    Config config = (Config) application.getProperties().get(this.getClass().getName());
+    com.castorls.escapegame.simpletext.Config config = (com.castorls.escapegame.simpletext.Config) application.getProperties().get(this.getClass().getName());
     Challenge[] challenges = config.getChallenges();
     if (nbChallenge >= challenges.length) {
       // nothing to do
@@ -163,9 +168,9 @@ public class SimpleTextService extends AbstractService {
       solutionStr = targets[(int) Math.floor(targets.length * Math.random())];
       challengeStr = convertString(solutionStr, true);
     }
-    this.solutionList.set(index, solutionStr);
-    this.challengeList.set(index, challengeStr);
-    this.tokenList.set(index, null);
+    this.solutions[index] = solutionStr;
+    this.challenges[index] =  challengeStr;
+    this.tokens[index] = null;
   }
 
   private String convertString(String orig, boolean toNumber) {
@@ -178,26 +183,33 @@ public class SimpleTextService extends AbstractService {
     for (char car : chars) {
       String carS = String.valueOf(car);
       if (carS.equals(" ")) {
-        builder.append(toNumber ? "0 " : " ");
-      } else if (car < startChar || car > endChar) {
-        builder.append(car).append(" ");
-      } else {
-        int carInt = (car - startChar);
+        builder.append(toNumber ? "_ " : " ");
+      } else if (car >= startChar && car <= endChar) {
+        int carInt = (car - startChar );
         int convertedCarInt = (carInt % (endChar - startChar));
         if (toNumber) {
-          builder.append(Integer.toString(convertedCarInt)).append(" ");
+          builder.append(Integer.toString(convertedCarInt+1)).append(" ");
         } else {
-          builder.append((char) convertedCarInt);
+          builder.append((char) (convertedCarInt + startChar));
         }
+      } else if (car >= startNumberChar && car <= endNumberChar) {
+        int carInt = (car - startNumberChar );
+        if (toNumber) {
+          builder.append("0").append(Integer.toString(carInt)).append(" ");
+        } else {
+          builder.append((char) (carInt + startNumberChar));
+        }
+      }else {
+        builder.append(car).append(" ");
       }
     }
     return builder.toString();
   }
 
   private int getNbChallenge() {
-    if (challengeList == null) {
+    if (challenges == null) {
       buildChallenges();
     }
-    return challengeList.size();
+    return challenges.length;
   }
 }

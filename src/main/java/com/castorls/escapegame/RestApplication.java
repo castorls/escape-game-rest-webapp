@@ -10,6 +10,7 @@ import javax.ws.rs.core.Application;
 
 import com.castorls.escapegame.mastermind.MasterMindService;
 import com.castorls.escapegame.morse.MorseService;
+import com.castorls.escapegame.simpletext.SimpleTextService;
 import com.castorls.escapegame.textcode.TextCodeService;
 import com.castorls.escapegame.timer.TimerService;
 
@@ -48,6 +49,7 @@ public class RestApplication extends Application {
     singletons.add(new TimerService());
     singletons.add(new MorseService());
     singletons.add(new TextCodeService());
+    singletons.add(new SimpleTextService());
     return singletons;
   }
 
@@ -58,6 +60,7 @@ public class RestApplication extends Application {
     properties.put(MasterMindService.class.getName(),config.mastermind);
     properties.put(MorseService.class.getName(),config.morse);
     properties.put(TextCodeService.class.getName(),config.textcode);
+    properties.put(SimpleTextService.class.getName(),config.simpletext);
     return properties;
   }
 }

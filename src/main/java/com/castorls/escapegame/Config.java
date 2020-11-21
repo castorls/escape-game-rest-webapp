@@ -19,6 +19,9 @@ public class Config {
   @JsonProperty
   public com.castorls.escapegame.textcode.Config  textcode;
 
+  @JsonProperty
+  public com.castorls.escapegame.simpletext.Config  simpletext;
+
   public static Config parseFile(String file) {
     final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 
