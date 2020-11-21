@@ -24,12 +24,6 @@
 			<artifactId>jersey-container-servlet</artifactId>
 			<version>${jersey.version}</version>
 		</dependency>
-		<!-- Required only when you are using JAX-RS Client -->
-		<dependency>
-			<groupId>org.glassfish.jersey.core</groupId>
-			<artifactId>jersey-client</artifactId>
-			<version>${jersey.version}</version>
-		</dependency>
 		<dependency>
 			<groupId>org.glassfish.jersey.media</groupId>
 			<artifactId>jersey-media-json-jackson</artifactId>
@@ -45,10 +39,6 @@
 			<artifactId>jersey-hk2</artifactId>
 			<version>${jersey.version}</version>
 		</dependency>
-		<!-- <dependency> <groupId>org.glassfish.jersey.ext.cdi</groupId> <artifactId>jersey-cdi1x</artifactId>
-			<version>${jersey.version}</version> <scope>compile</scope> </dependency>
-			<dependency> <groupId>org.glassfish.jersey.ext.cdi</groupId> <artifactId>jersey-cdi1x-servlet</artifactId>
-			<version>${jersey.version}</version> <scope>compile</scope> </dependency> -->
 		<dependency>
 			<groupId>org.glassfish.jersey.ext.cdi</groupId>
 			<artifactId>jersey-weld2-se</artifactId>
