@@ -81,7 +81,7 @@ public class TextCodeService extends AbstractService{
   @Path("/checkProposition")
   @Consumes("application/json")
   @Produces("application/json")
-  public Response consumeProposition(Proposition proposition) {
+  public Response consumeProposition(com.castorls.escapegame.textcode.Proposition proposition) {
     try {
       if (proposition == null) {
         return generateErrorResponse("InvalidProposition", "Invalid null proposition", Response.Status.BAD_REQUEST);
@@ -107,7 +107,7 @@ public class TextCodeService extends AbstractService{
   }
 
   private void buildChallenge() {
-    Config config = (Config) application.getProperties().get(this.getClass().getName());
+    com.castorls.escapegame.textcode.Config config = (com.castorls.escapegame.textcode.Config) application.getProperties().get(this.getClass().getName());
     String[] targets = config.getTargets();
     Type type = config.getType();
     if (Type.LETTRE.equals(type)) {

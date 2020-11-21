@@ -14,7 +14,6 @@ import javax.ws.rs.core.Response.Status;
 
 import com.castorls.escapegame.AbstractService;
 import com.castorls.escapegame.Util;
-import com.castorls.escapegame.textcode.Config;
 
 @Path("/morse")
 public class MorseService extends AbstractService {
@@ -79,7 +78,7 @@ public class MorseService extends AbstractService {
   @Path("/checkProposition")
   @Consumes("application/json")
   @Produces("application/json")
-  public Response consumeChoice(Proposition proposition) {
+  public Response consumeChoice(com.castorls.escapegame.morse.Proposition proposition) {
     try {
       if (proposition == null) {
         return generateErrorResponse("InvalidProposition", "Invalid null proposition", Response.Status.BAD_REQUEST);
@@ -105,7 +104,7 @@ public class MorseService extends AbstractService {
   }
 
   private void buildChallenge() {
-    Config config = (Config) application.getProperties().get(this.getClass().getName());
+    com.castorls.escapegame.morse.Config config = (com.castorls.escapegame.morse.Config) application.getProperties().get(this.getClass().getName());
     String[] targets = config.getTargets();
     solution = targets[(int) Math.round(targets.length * Math.random())];
     challenge = convertStringToMorse(solution);
