@@ -22,21 +22,20 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
+import com.castorls.escapegame.AbstractService;
 import com.castorls.escapegame.SSeService;
 
 @Path("/timer")
-public class TimerService {
+public class TimerService  extends AbstractService{
 
   private Timer endTimer = null;
   private Instant endInstant = null;
 
-  @Inject
-  private SSeService sseService;
-
-  @Context
-  private Application  application;
-
   public TimerService() {
+  }
+
+  public String getSseEventName() {
+    return "timerEvent";
   }
 
   @POST
@@ -53,7 +52,7 @@ public class TimerService {
     endTimer.schedule(new TimerTask() {
       @Override
       public void run() {
-        sseServiceInstance.sendMessage("event", "timerEvent", "timer end", null);
+        sseServiceInstance.sendMessage("event", getSseEventName(), "timer end", null);
       }
     }, Date.from(endInstant));
     return Response.status(200).build();
@@ -65,17 +64,7 @@ public class TimerService {
   public Response getCounter() {
     Map<String, String> map = new HashMap<>();
     if (endInstant == null) {
-      endInstant = Instant.now().plus(10, ChronoUnit.SECONDS);
-      if (endTimer == null) {
-        endTimer = new Timer();
-        final SSeService sseServiceInstance = this.sseService;
-        endTimer.schedule(new TimerTask() {
-          @Override
-          public void run() {
-            sseServiceInstance.sendMessage("event", "timerEvent", "timer end", null);
-          }
-        }, Date.from(endInstant));
-      }
+      resetCounter();
     }
     long nbSeconds = Instant.now().until(endInstant, ChronoUnit.SECONDS);
     if (nbSeconds < 0) {
